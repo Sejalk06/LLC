@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Recipe Manager</title>
+
+<style>
+body {
+    font-family: 'Segoe UI', sans-serif;
+    background: linear-gradient(135deg, #ff9a9e, #fad0c4);
+    margin: 0;
+    color: #333;
+}
+
+.container {
+    max-width: 900px;
+    margin: 20px auto;
+    padding: 20px;
+}
+
+.card {
+    background: rgba(255,255,255,0.7);
+    backdrop-filter: blur(10px);
+    padding: 20px;
+    border-radius: 15px;
+    margin-bottom: 20px;
+}
+
+h1 {
+    text-align: center;
+}
+
+input, textarea {
+    width: 100%;
+    padding: 10px;
+    margin: 5px 0;
+    border-radius: 8px;
+    border: none;
+}
+
+button {
+    padding: 10px 15px;
+    margin-top: 10px;
+    border: none;
+    border-radius: 8px;
+    background: #ff6f61;
+    color: white;
+    cursor: pointer;
+}
+
+.recipe {
+    border-top: 1px solid #ccc;
+    margin-top: 10px;
+    padding-top: 10px;
+}
+
+.flex {
+    display: flex;
+    gap: 10px;
+}
+
+.flex input {
+    flex: 1;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>🍲 Recipe Manager</h1>
+
+<div class="card">
+    <h2>Add Recipe</h2>
+    <input id="name" placeholder="Recipe Name">
+    <textarea id="ingredients" placeholder="Ingredients (e.g. sugar:2, milk:1)"></textarea>
+    <textarea id="steps" placeholder="Steps"></textarea>
+    <input id="servings" type="number" placeholder="Servings">
+    <button onclick="addRecipe()">Add Recipe</button>
+</div>
+
+<div class="card">
+    <h2>🔍 Search by Ingredient</h2>
+    <input id="search" placeholder="Type ingredient..." onkeyup="searchRecipe()">
+</div>
+
+<div class="card">
+    <h2>📖 Saved Recipes</h2>
+    <div id="recipes"></div>
+</div>
+
+</div>
+
+<script>
+let recipes = JSON.parse(localStorage.getItem("recipes")) || [];
+
+// ---------- ADD ----------
+function addRecipe(){
+    let name = document.getElementById("name").value;
+    let ing = document.getElementById("ingredients").value;
+    let steps = document.getElementById("steps").value;
+    let servings = document.getElementById("servings").value;
+
+    if(!name || !ing) return alert("Fill required fields");
+
+    let ingredients = ing.split(",").map(i=>{
+        let [item, qty] = i.split(":");
+        return {item: item.trim(), qty: parseFloat(qty)};
+    });
+
+    recipes.push({name, ingredients, steps, servings});
+    localStorage.setItem("recipes", JSON.stringify(recipes));
+
+    displayRecipes();
+}
+
+// ---------- DISPLAY ----------
+function displayRecipes(list = recipes){
+    let html = "";
+
+    list.forEach((r, index)=>{
+        html += `
+        <div class="recipe">
+            <h3>${r.name}</h3>
+            <p><b>Servings:</b> <input type="number" value="${r.servings}" onchange="scale(${index}, this.value)"></p>
+
+            <p><b>Ingredients:</b></p>
+            <ul>
+                ${r.ingredients.map(i=>`<li>${i.item}: ${i.qty}</li>`).join("")}
+            </ul>
+
+            <p><b>Steps:</b> ${r.steps}</p>
+
+            <button onclick="deleteRecipe(${index})">Delete</button>
+        </div>
+        `;
+    });
+
+    document.getElementById("recipes").innerHTML = html;
+}
+
+// ---------- SCALE ----------
+function scale(index, newServ){
+    let recipe = recipes[index];
+    let factor = newServ / recipe.servings;
+
+    recipe.ingredients = recipe.ingredients.map(i=>{
+        return {item: i.item, qty: (i.qty * factor).toFixed(2)};
+    });
+
+    recipe.servings = newServ;
+    localStorage.setItem("recipes", JSON.stringify(recipes));
+    displayRecipes();
+}
+
+// ---------- DELETE ----------
+function deleteRecipe(index){
+    recipes.splice(index,1);
+    localStorage.setItem("recipes", JSON.stringify(recipes));
+    displayRecipes();
+}
+
+// ---------- SEARCH ----------
+function searchRecipe(){
+    let text = document.getElementById("search").value.toLowerCase();
+
+    let filtered = recipes.filter(r =>
+        r.ingredients.some(i => i.item.toLowerCase().includes(text))
+    );
+
+    displayRecipes(filtered);
+}
+
+// INIT
+displayRecipes();
+</script>
+
+</body>
+</html>
